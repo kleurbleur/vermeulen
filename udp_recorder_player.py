@@ -25,12 +25,12 @@ DEBUG = 0
 # Set the to be loaded slots. 
 # Has to be full paths or else it won't start on boot! 
 if pi:
-    play_pir = "/home/pi/Desktop/whos_afraid/PIR_SLOT.json"
-    play_slow = "/home/pi/Desktop/whos_afraid/SLOW_SLOT.json"
+    play_1 = "/home/pi/Desktop/whos_afraid/PIR_SLOT.json"
+    play_2 = "/home/pi/Desktop/whos_afraid/SLOW_SLOT.json"
     path_settings = "/home/pi/Desktop/whos_afraid/settings.json"
 else:
-    play_pir = "PIR_SLOT.json"
-    play_slow = "SLOW_SLOT.json"
+    play_1 = "PIR_SLOT.json"
+    play_2 = "SLOW_SLOT.json"
     path_settings = "settings.json"    
 
 
@@ -43,23 +43,7 @@ else:
 if pi:
     inv_1 = PWMOutputDevice(7)
     inv_2 = PWMOutputDevice(8)
-    inv_3 = PWMOutputDevice(25)
-    inv_4 = PWMOutputDevice(24)
-    inv_5 = PWMOutputDevice(23)
-    inv_6 = PWMOutputDevice(18)
-    inv_7 = PWMOutputDevice(3)
-    inv_8 = PWMOutputDevice(4)
-    inv_9 = PWMOutputDevice(17)
-    inv_10 = PWMOutputDevice(27)
-    inv_11 = PWMOutputDevice(22)
-    inv_12 = PWMOutputDevice(10)
-    inv_13 = PWMOutputDevice(9)
-    inv_14 = PWMOutputDevice(11)
-    inv_15 = PWMOutputDevice(5)
-    inv_16 = PWMOutputDevice(6)
-    inv_17 = PWMOutputDevice(13)
-    inv_18 = PWMOutputDevice(19)
-    pir = DigitalInputDevice(26)
+    play_button = DigitalInputDevice(26)
 
 if pi:
     print(f"Listening on port {UDP_PORT} for UDP messages from the recorder software.") 
@@ -97,12 +81,12 @@ CEND = '\033[0m'
 
 #load composition pir
 def composition_load_pir():
-    global play_pir, recording_pir,rec_dict_pir, last_time_pir
-    print(f"{datetime.datetime.now().time()}: opening {play_pir}")
+    global play_1, recording_pir,rec_dict_pir, last_time_pir
+    print(f"{datetime.datetime.now().time()}: opening {play_1}")
     try:
-        f = open(play_pir, "rb")
+        f = open(play_1, "rb")
     except:
-        print("The PIR SLOT does not contain a file.")
+        print("The FIRST SLOT does not contain a file.")
     else:
         one_char = f.read(1) # read first character to check if it contains data 
         if one_char:
@@ -113,19 +97,19 @@ def composition_load_pir():
             #     print(rec_dict_pir) 
             last_time_pir = list(recording_pir)[-1]["time"]
             f.close()
-            print(f"{datetime.datetime.now().time()}: {play_pir} is {last_time_pir} seconds long")
+            print(f"{datetime.datetime.now().time()}: {play_1} is {last_time_pir} seconds long")
         elif not one_char:
-            print("The slot does not contain any data.")
+            print("The FIRST SLOT does not contain any data.")
 composition_load_pir()
 
 #load composition slow
 def composition_load_slow():
-    global play_slow, recording_slow, rec_dict_slow, last_time_slow
-    print(f"{datetime.datetime.now().time()}: opening {play_slow}")
+    global play_2, recording_slow, rec_dict_slow, last_time_slow
+    print(f"{datetime.datetime.now().time()}: opening {play_2}")
     try:
-        f = open(play_slow, "rb")
+        f = open(play_2, "rb")
     except:
-        print("The SLOW SLOT does not contain a file.")
+        print("The SECOND SLOT does not contain a file.")
     else:
         one_char = f.read(1) # read first character to check if it contains data 
         if one_char:        #if it has at least 1 character
@@ -136,9 +120,9 @@ def composition_load_slow():
             #     print(rec_dict_slow) 
             last_time_slow = list(recording_slow)[-1]["time"]
             f.close()
-            print(f"{datetime.datetime.now().time()}: {play_slow} is {last_time_slow} seconds long")
+            print(f"{datetime.datetime.now().time()}: {play_2} is {last_time_slow} seconds long")
         elif not one_char:
-            print("The SLOW SLOT does not contain any data.")   
+            print("The SECOND SLOT does not contain any data.")   
 composition_load_slow()
 
 
@@ -161,23 +145,7 @@ def player (thread_name, dict, last_entry, slot):
                 print(f"{datetime.datetime.now().time()}: {thread_name} time: {t_check} values: {values}")   
             if pi:    
                 inv_1.value = values[0]
-                inv_2.value = values[1]
-                inv_3.value = values[2]
-                inv_4.value = values[3]
-                inv_5.value = values[4]
-                inv_6.value = values[5]
-                inv_7.value = values[6]
-                inv_8.value = values[7]
-                inv_9.value = values[8]
-                inv_10.value = values[9]
-                inv_11.value = values[10]
-                inv_12.value = values[11]
-                inv_13.value = values[12]
-                inv_14.value = values[13]
-                inv_15.value = values[14]
-                inv_16.value = values[15]
-                inv_17.value = values[16]
-                inv_18.value = values[17]                                           
+                inv_2.value = values[1]                                         
         if t1 >= last_entry:
             print(f"{datetime.datetime.now().time()}: Thread {thread_name} done playing {slot}")
             t0 = 0
@@ -189,7 +157,7 @@ def player (thread_name, dict, last_entry, slot):
 
 def interaction():
     global stop_thread_pir, stop_thread_slow, interaction_stop
-    global rec_dict_pir, rec_dict_slow, last_time_pir, last_time_slow, play_slow, play_pir
+    global rec_dict_pir, rec_dict_slow, last_time_pir, last_time_slow, play_2, play_1
     global pir_sensor_active, pir_sensor, standard_mode
     # The loop that checks wether the pir sensor is active or not and starts, or kills, the corresponding threads    
     print("interaction has started")    
@@ -204,12 +172,12 @@ def interaction():
             standard_mode = True
             stop_thread_slow = False
             try:
-                t_slow = threading.Thread(target = player, args=("t_slow", rec_dict_slow, last_time_slow, play_slow )) 
+                t_slow = threading.Thread(target = player, args=("t_slow", rec_dict_slow, last_time_slow, play_2 )) 
                 t_slow.start()
             except:
                 print("No slow composition is found. Playing the pir composition.") 
                 try:
-                    t_pir = threading.Thread(target = player, args=("t_pir", rec_dict_pir, last_time_pir, play_pir)) 
+                    t_pir = threading.Thread(target = player, args=("t_pir", rec_dict_pir, last_time_pir, play_1)) 
                     t_pir.start()
                 except:
                     print("No pir composition is found either, please record a composition before starting this program.")
@@ -230,12 +198,12 @@ def interaction():
                 standard_mode = False
                 stop_thread_slow = False
                 try:
-                    t_pir = threading.Thread(target = player, args=("t_pir", rec_dict_pir, last_time_pir, play_pir)) 
+                    t_pir = threading.Thread(target = player, args=("t_pir", rec_dict_pir, last_time_pir, play_1)) 
                     t_pir.start()
                 except:
                     print("no pir composition is found, playing the slow composition") 
                     try:
-                        t_slow = threading.Thread(target = player, args=("t_slow", rec_dict_slow, last_time_slow, play_slow )) 
+                        t_slow = threading.Thread(target = player, args=("t_slow", rec_dict_slow, last_time_slow, play_2 )) 
                         t_slow.start()
                     except:
                         print("No slow composition is found either. Please record a composition before starting the program.")
@@ -243,25 +211,9 @@ def interaction():
 def stop_inv():
     global pi
     if pi:
-        global inv_1, inv_2, inv_3, inv_4, inv_5, inv_6, inv_7, inv_8, inv_9, inv_11, inv_12, inv_13, inv_14, inv_15, inv_16, inv_17, inv_18
+        global inv_1, inv_2
         inv_1.value = 0
         inv_2.value = 0
-        inv_3.value = 0
-        inv_4.value = 0
-        inv_5.value = 0
-        inv_6.value = 0    
-        inv_7.value = 0
-        inv_8.value = 0
-        inv_9.value = 0
-        inv_10.value = 0
-        inv_11.value = 0
-        inv_12.value = 0  
-        inv_13.value = 0
-        inv_14.value = 0
-        inv_15.value = 0
-        inv_16.value = 0
-        inv_17.value = 0
-        inv_18.value = 0
     print(f"{datetime.datetime.now().time()}: inverters stopped")
     return
 
@@ -272,7 +224,7 @@ def network_udp():
     global stop_thread_pir, stop_thread_slow, interaction_stop, standard_mode
     global pi
     if pi:
-        global inv_1, inv_2, inv_3, inv_4, inv_5, inv_6, inv_7, inv_8, inv_9, inv_11, inv_12, inv_13, inv_14, inv_15, inv_16, inv_17, inv_18
+        global inv_1, inv_2
     data = '' # empty var for incoming data
     rec = 0
     while True:
@@ -315,7 +267,7 @@ def network_udp():
                     print(decode_list[0],decode_list[1])                    # for debug purposes
                     y = []                                                  # the list that is used to store everything, empty or start it when this is called
                     if pi:
-                        loc_file = "/home/pi/Desktop/whos_afraid/" + decode_list[1]
+                        loc_file = "/home/pi/Desktop/vermeulen/" + decode_list[1]
                     else:
                         loc_file = decode_list[1]
                     t0 = time.time()                                        # start the timer
@@ -326,45 +278,13 @@ def network_udp():
                     if pi:
                         inv_1.value = float(decode_list[1])
                         inv_2.value = float(decode_list[2])
-                        inv_3.value = float(decode_list[3])
-                        inv_4.value = float(decode_list[4])
-                        inv_5.value = float(decode_list[5])
-                        inv_6.value = float(decode_list[6])    
-                        inv_7.value = float(decode_list[7])
-                        inv_8.value = float(decode_list[8])
-                        inv_9.value = float(decode_list[9])
-                        inv_10.value = float(decode_list[10])
-                        inv_11.value = float(decode_list[11])
-                        inv_12.value = float(decode_list[12])  
-                        inv_13.value = float(decode_list[13])
-                        inv_14.value = float(decode_list[14])
-                        inv_15.value = float(decode_list[15])
-                        inv_16.value = float(decode_list[16])
-                        inv_17.value = float(decode_list[17])
-                        inv_18.value = float(decode_list[18])  
                     if rec:
                         t1 = time.time() - t0
                         x = {                                                   # build a dict with the info from UDP
                             "time": round(t1, 3),
                             "values":[
                                     float(decode_list[1]),
-                                    float(decode_list[2]),
-                                    float(decode_list[3]),
-                                    float(decode_list[4]),
-                                    float(decode_list[5]),
-                                    float(decode_list[6]),
-                                    float(decode_list[7]),
-                                    float(decode_list[8]),
-                                    float(decode_list[9]),
-                                    float(decode_list[10]),
-                                    float(decode_list[11]),
-                                    float(decode_list[12]),
-                                    float(decode_list[13]),
-                                    float(decode_list[14]),
-                                    float(decode_list[15]),
-                                    float(decode_list[16]),
-                                    float(decode_list[17]),
-                                    float(decode_list[18])                                                        
+                                    float(decode_list[2])                                                      
                                 ]           
                             }
                         y.append(x)                                         # append the dict to the list 
@@ -411,11 +331,11 @@ except:
 
 # the function that will spawn as a thread continiously checking the pir sensor
 def pir_input():
-    global pi, pir_sensor, pir, addr, UDP_OUT_PORT
+    global pi, pir_sensor, play_button, addr, UDP_OUT_PORT
     print(f"{datetime.datetime.now().time()}: Detecting pir sensor")
     while True: 
         if pi:
-            pir_sensor = pir.value 
+            pir_sensor = play_button.value 
             if pir_sensor and DEBUG == 1:
                 print(f"{datetime.datetime.now().time()}: pir sensor: {pir_sensor}")
         else:
