@@ -25,9 +25,9 @@ DEBUG = 0
 # Set the to be loaded slots. 
 # Has to be full paths or else it won't start on boot! 
 if pi:
-    play_1 = "/home/pi/Desktop/whos_afraid/PIR_SLOT.json"
-    play_2 = "/home/pi/Desktop/whos_afraid/SLOW_SLOT.json"
-    path_settings = "/home/pi/Desktop/whos_afraid/settings.json"
+    play_1 = "/home/kb/Desktop/vermeulen/PIR_SLOT.json"
+    play_2 = "/home/kb/Desktop/vermeulen/SLOW_SLOT.json"
+    path_settings = "/home/kb/Desktop/vermeulen/settings.json"
 else:
     play_1 = "PIR_SLOT.json"
     play_2 = "SLOW_SLOT.json"
@@ -47,7 +47,7 @@ if pi:
 
 if pi:
     print(f"Listening on port {UDP_PORT} for UDP messages from the recorder software.") 
-    print("My IP address was hard coded during the exhibition in Stedelijk Museum Schiedam at 192.168.178.49.")
+    print("My IP address was hard coded at 192.168.178.9.")
     print("Commands are 'REC filename.json', 'EDIT', 'SHOW', 'STOP' and 'EXIT'.")
     print("Sending values when in EDIT mode works if inverters are connected and programmed on 0 - 3.3V input.")
 else:
@@ -352,18 +352,22 @@ except:
 
 
 
-file_settings = open(path_settings, 'r')
-all_char = file_settings.read(20) # read file
-if all_char.startswith("EDIT"):
-    print("record mode")
-    play_mode = 1
-elif all_char.startswith("SHOW"):
-    print("play mode")
-    play_mode = 2
-file_settings.close()
-
-
-
+# FILE SETTINGS
+try:
+    file_settings = open(path_settings, 'r')
+except:
+    print (f"{datetime.datetime.now().time()}: Error: Could not find a settings file at {path_settings}. Will create a new one.")
+    file_settings = open(path_settings, 'w+')
+    file_settings.write("SHOW")
+finally:
+    all_char = file_settings.read(20) # read file
+    if all_char.startswith("EDIT"):
+        print("record mode")
+        play_mode = 1
+    elif all_char.startswith("SHOW"):
+        print("play mode")
+        play_mode = 2
+    file_settings.close()
 
 
 
