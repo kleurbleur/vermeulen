@@ -25,12 +25,12 @@ DEBUG = 4
 # Set the to be loaded slots. 
 # Has to be full paths or else it won't start on boot! 
 if pi:
-    play_1 = "/home/kb/Desktop/vermeulen/PIR_SLOT.json"
-    play_2 = "/home/kb/Desktop/vermeulen/SLOW_SLOT.json"
+    play_1 = "/home/kb/Desktop/vermeulen/SLOT_1.json"
+    play_2 = "/home/kb/Desktop/vermeulen/SLOT_2.json"
     path_settings = "/home/kb/Desktop/vermeulen/settings.json"
 else:
-    play_1 = "PIR_SLOT.json"
-    play_2 = "SLOW_SLOT.json"
+    play_1 = "SLOT_1.json"
+    play_2 = "SLOT_2.json"
     path_settings = "settings.json"    
 
 
@@ -41,15 +41,16 @@ else:
 # Check pinout.xyz for the black pin numbers aka the board numbers these are used as strings e.g. "BOARD18".
 # BCM numbering are usable as integers.  
 if pi:
-    inv_1 = PWMOutputDevice(7)
-    inv_2 = PWMOutputDevice(8)
+    inv_1 = PWMOutputDevice("BOARD12")
+    inv_2 = PWMOutputDevice("BOARD13")
     play_button = DigitalInputDevice(26)
 
 if pi:
     print(f"Listening on port {UDP_PORT} for UDP messages from the recorder software.") 
-    print("My IP address was hard coded at 192.168.178.9.")
+    print("My IP address is hard coded at 192.168.178.9.")
     print("Commands are 'REC filename.json', 'EDIT', 'SHOW', 'STOP' and 'EXIT'.")
-    print("Sending values when in EDIT mode works if inverters are connected and programmed on 0 - 3.3V input.")
+    print("Drivers can be controllers directly when in EDIT mode if inverters are connected and programmed on 0 - 3.3V input.")
+    print(f"The outputs are {inv_1} and {inv_2}.")
 else:
     print(f"Listening on port {UDP_PORT} for UDP messages from the recorder software.") 
     print("Commands are 'REC filename.json', 'EDIT', 'SHOW', 'STOP' and 'EXIT'.")
