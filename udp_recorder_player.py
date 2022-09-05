@@ -19,7 +19,7 @@ UDP_OUT_PORT = 6007
 
 # Set the debug level
 # 0 = no debug messages, 1 = INPUT, 2 = inverter messages, 3 = UDP, 4 = all
-DEBUG = 4
+DEBUG = 3
 
 
 # Set the to be loaded slots. 
@@ -43,7 +43,7 @@ else:
 if pi:
     inv_1 = PWMOutputDevice("BOARD12")
     inv_2 = PWMOutputDevice("BOARD13")
-    play_button = DigitalInputDevice(26)
+    play_button = DigitalInputDevice(21, pull_up=True)
 
 if pi:
     print(f"Listening on port {UDP_PORT} for UDP messages from the recorder software.") 
@@ -80,7 +80,7 @@ CEND = '\033[0m'
 
 
 
-#load composition pir
+#load composition 1
 def composition_load_pir():
     global play_1, recording_pir,rec_dict_pir, last_time_pir
     print(f"{datetime.datetime.now().time()}: opening {play_1}")
@@ -103,38 +103,39 @@ def composition_load_pir():
             print("The FIRST SLOT does not contain any data.")
 composition_load_pir()
 
-#load composition slow
-def composition_load_slow():
-    global play_2, recording_slow, rec_dict_slow, last_time_slow
-    print(f"{datetime.datetime.now().time()}: opening {play_2}")
-    try:
-        f = open(play_2, "rb")
-    except:
-        print("The SECOND SLOT does not contain a file.")
-    else:
-        one_char = f.read(1) # read first character to check if it contains data 
-        if one_char:        #if it has at least 1 character
-            f.seek(-1, 1)   # go back one character to make sure json.loads still understand the format
-            recording_slow = json.loads(f.read())
-            rec_dict_slow = {entry["time"]:entry["values"] for entry in recording_slow}
-            if DEBUG == 2 or DEBUG == 4:
-                print(rec_dict_slow) 
-            last_time_slow = list(recording_slow)[-1]["time"]
-            f.close()
-            print(f"{datetime.datetime.now().time()}: {play_2} is {last_time_slow} seconds long")
-        elif not one_char:
-            print("The SECOND SLOT does not contain any data.")   
-composition_load_slow()
+# #load composition 2
+# def composition_load_slow():
+#     global play_2, recording_slow, rec_dict_slow, last_time_slow
+#     print(f"{datetime.datetime.now().time()}: opening {play_2}")
+#     try:
+#         f = open(play_2, "rb")
+#     except:
+#         print("The SECOND SLOT does not contain a file.")
+#     else:
+#         one_char = f.read(1) # read first character to check if it contains data 
+#         if one_char:        #if it has at least 1 character
+#             f.seek(-1, 1)   # go back one character to make sure json.loads still understand the format
+#             recording_slow = json.loads(f.read())
+#             rec_dict_slow = {entry["time"]:entry["values"] for entry in recording_slow}
+#             if DEBUG == 2 or DEBUG == 4:
+#                 print(rec_dict_slow) 
+#             last_time_slow = list(recording_slow)[-1]["time"]
+#             f.close()
+#             print(f"{datetime.datetime.now().time()}: {play_2} is {last_time_slow} seconds long")
+#         elif not one_char:
+#             print("The SECOND SLOT does not contain any data.")   
+# composition_load_slow()
 
 
 # the function that will be the player for both compositions
 def player (thread_name, dict, last_entry, slot):
     global stop_thread_slow, stop_thread_pir
-    global pir_sensor_active, standard_mode, playing
+    global pir_sensor_active, standard_mode, playing, player_done
     global pi
     playing = True
     print(f"{datetime.datetime.now().time()}: Thread {thread_name} Starting composition from {slot} and will be playing for: {last_entry}s")
     t0 = time.time()
+    player_done = False
     while True:
         t1 = time.time() - t0
         t_check = round(t1, 3)
@@ -151,6 +152,7 @@ def player (thread_name, dict, last_entry, slot):
             print(f"{datetime.datetime.now().time()}: Thread {thread_name} done playing {slot}")
             t0 = 0
             t1 = 0
+            player_done = True
             playing = False
             pir_sensor_active = False
             standard_mode = False
@@ -169,45 +171,27 @@ def interaction():
         if interaction_stop:
             print(f"{datetime.datetime.now().time()}: Interaction thread is stopping")
             break
-        if not standard_mode and not pir_sensor_active:
-            standard_mode = True
-            stop_thread_slow = False
-            try:
-                t_slow = threading.Thread(target = player, args=("t_slow", rec_dict_slow, last_time_slow, play_2 )) 
-                t_slow.start()
-            except:
-                print("No slow composition is found. Playing the pir composition.") 
-                try:
-                    t_pir = threading.Thread(target = player, args=("t_pir", rec_dict_pir, last_time_pir, play_1)) 
-                    t_pir.start()
-                except:
-                    print("No pir composition is found either, please record a composition before starting this program.")
         if pir_sensor and not pir_sensor_active:
             pir_sensor_active = True
             print(f"{datetime.datetime.now().time()}: interaction thread and not pir_sensor_active pir_sensor:", pir_sensor)
-            print(f"{datetime.datetime.now().time()}: Slow player is alive:  {t_slow.is_alive()}")
-            if t_slow.is_alive():
-                print(f"{datetime.datetime.now().time()}: Attempting to kill player slow")
-                stop_thread_slow = True
-                t_slow.join()
-                if not t_slow.is_alive():
-                    print(f"{datetime.datetime.now().time()}: Slow player thread is not alive")
-                elif t_slow.is_alive():
-                    print(f"{datetime.datetime.now().time()}: Error: slow player could not be killed. Not starting pir active thread.")
-            if not t_slow.is_alive():
-                print(f"{datetime.datetime.now().time()}: Slow player killed")
-                standard_mode = False
-                stop_thread_slow = False
-                try:
-                    t_pir = threading.Thread(target = player, args=("t_pir", rec_dict_pir, last_time_pir, play_1)) 
-                    t_pir.start()
-                except:
-                    print("no pir composition is found, playing the slow composition") 
-                    try:
-                        t_slow = threading.Thread(target = player, args=("t_slow", rec_dict_slow, last_time_slow, play_2 )) 
-                        t_slow.start()
-                    except:
-                        print("No slow composition is found either. Please record a composition before starting the program.")
+            print(f"{datetime.datetime.now().time()}: Slow player killed")
+            standard_mode = False
+            stop_thread_slow = False
+            try:
+                t_pir = threading.Thread(target = player, args=("t_pir", rec_dict_pir, last_time_pir, play_1)) 
+                t_pir.start()
+            except:
+                print("Could not start composition. Exitting")
+                quit()
+            # except:
+            #     print("no pir composition is found, playing the slow composition")
+            #     try:
+            #         t_slow = threading.Thread(target = player, args=("t_slow", rec_dict_slow, last_time_slow, play_2 ))
+            #         t_slow.start()
+            #     except:
+            #         print("No slow composition is found either. Please record a composition before starting the program.")
+
+            
 
 def stop_inv():
     global pi
@@ -237,10 +221,14 @@ def network_udp():
             if data.startswith("status"):
                 show_mode = "play_mode " + str(play_mode)
                 sock.sendto((bytes(show_mode, "utf-8")), (addr[0], UDP_OUT_PORT))
-            if data.startswith("SHOW"):                            # if the first part of the list starts with "rec"
-                file_settings = open(path_settings, 'w')
-                file_settings.write(data)    
-                file_settings.close()
+            if data.startswith("SHOW"):     
+                print(f, "data: {data}")                       
+                try:
+                    file_settings = open(path_settings, 'w')
+                    file_settings.write(data)    
+                    file_settings.close()                    
+                except:
+                    print("settings file cannot be opened or written.")
                 standard_mode = False
                 stop_thread_pir = False
                 stop_thread_slow = False                
@@ -251,9 +239,13 @@ def network_udp():
                 play_mode = 2
                 print("play_mode udp", play_mode)
             if data.startswith("EDIT"):
-                file_settings = open(path_settings, 'w')
-                file_settings.write(data)    
-                file_settings.close()
+                print(f, "data: {data}")
+                try:
+                    file_settings = open(path_settings, 'w')
+                    file_settings.write(data)    
+                    file_settings.close()                    
+                except:
+                    print("settings file cannot be opened or written.")
                 stop_thread_slow = True
                 stop_thread_pir = True
                 interaction_stop = True
@@ -300,7 +292,7 @@ def network_udp():
                         sock.sendto(bytes("load_mode 1", "utf-8"), (addr[0], UDP_OUT_PORT))
                         del y                                                   # double check to delete to free up memory
                         composition_load_pir()
-                        composition_load_slow() 
+                        # composition_load_slow() 
                         sock.sendto(bytes("load_mode 0", "utf-8"), (addr[0], UDP_OUT_PORT))
                     except:
                         print("The recording has not started yet. Try again.")
@@ -317,7 +309,7 @@ def network_udp():
                             print("done writing file")                              
                             del y                                                   # double check to delete to free up memory
                             composition_load_pir()
-                            composition_load_slow() 
+                            # composition_load_slow() 
                         except:
                             print("The recording has not started yet. Try again.")
                         stop_inv()   
