@@ -18,8 +18,8 @@ UDP_OUT_PORT = 6007
 
 
 # Set the debug level
-# 0 = no debug messages, 1 = PIR sensor, 2 = inverter messages, 3 = UDP, 4 = all
-DEBUG = 0
+# 0 = no debug messages, 1 = INPUT, 2 = inverter messages, 3 = UDP, 4 = all
+DEBUG = 4
 
 
 # Set the to be loaded slots. 
@@ -93,8 +93,8 @@ def composition_load_pir():
             f.seek(-1, 1)   # go back one character to make sure json.loads still understand the format
             recording_pir = json.loads(f.read())
             rec_dict_pir = {entry["time"]:entry["values"] for entry in recording_pir}
-            # if DEBUG == 2 or DEBUG == 3:
-            #     print(rec_dict_pir) 
+            if DEBUG == 2 or DEBUG == 4:
+                print(rec_dict_pir) 
             last_time_pir = list(recording_pir)[-1]["time"]
             f.close()
             print(f"{datetime.datetime.now().time()}: {play_1} is {last_time_pir} seconds long")
@@ -116,8 +116,8 @@ def composition_load_slow():
             f.seek(-1, 1)   # go back one character to make sure json.loads still understand the format
             recording_slow = json.loads(f.read())
             rec_dict_slow = {entry["time"]:entry["values"] for entry in recording_slow}
-            # if DEBUG == 2 or DEBUG == 3:
-            #     print(rec_dict_slow) 
+            if DEBUG == 2 or DEBUG == 4:
+                print(rec_dict_slow) 
             last_time_slow = list(recording_slow)[-1]["time"]
             f.close()
             print(f"{datetime.datetime.now().time()}: {play_2} is {last_time_slow} seconds long")
@@ -230,7 +230,7 @@ def network_udp():
     while True:
         data_raw, addr = sock.recvfrom(1024)
         data = data_raw.decode()    # My test message is encoded
-        if DEBUG == 1 or DEBUG == 3:
+        if DEBUG == 3 or DEBUG == 4:
             print(f"{CRED}{datetime.datetime.now().time()} UDP MESSAGE: {data}{CEND}")    
         if data:                                                        # only do something when there's data
             if data.startswith("status"):
@@ -267,11 +267,11 @@ def network_udp():
                     print(decode_list[0],decode_list[1])                    # for debug purposes
                     y = []                                                  # the list that is used to store everything, empty or start it when this is called
                     if pi:
-                        loc_file = "/home/pi/Desktop/vermeulen/" + decode_list[1]
+                        loc_file = "/home/kb/Desktop/vermeulen/" + decode_list[1]
                     else:
                         loc_file = decode_list[1]
                     t0 = time.time()                                        # start the timer
-                    f = open(loc_file, 'w')                           # open or new file with the chosen file in the Recorder Software
+                    f = open(loc_file, 'w+')                           # open or new file with the chosen file in the Recorder Software
                     rec = 1
                     sock.sendto(bytes("REC", "utf-8"), (addr[0], UDP_OUT_PORT))
                 elif decode_list[0].startswith("VALUES"):   # if the first part of the list starts with "VALUES"
@@ -336,7 +336,7 @@ def pir_input():
     while True: 
         if pi:
             pir_sensor = play_button.value 
-            if pir_sensor and DEBUG == 1:
+            if pir_sensor and DEBUG == 1 or pir_sensor and DEBUG == 4:
                 print(f"{datetime.datetime.now().time()}: pir sensor: {pir_sensor}")
         else:
             time.sleep(40)   # DEBUG for non pi checking
@@ -361,6 +361,7 @@ except:
     file_settings.write("SHOW")
 finally:
     all_char = file_settings.read(20) # read file
+    print(all_char)
     if all_char.startswith("EDIT"):
         print("record mode")
         play_mode = 1
@@ -369,10 +370,33 @@ finally:
         play_mode = 2
     file_settings.close()
 
-
+# def keyboard_switcher():
+#     global play_mode
+#     key_input = input("type SHOW or EDIT for their modes")
+#     if key_input.startswith("EDIT"):
+#         print("keyboard swichted mode to EDIT")
+#         play_mode = 1 
+#     elif key_input.startswith("SHOW"):
+#         print("keyboard swichted mode to SHOW")
+#         play_mode = 2
+# # start the pir sensor thread 
+# try:
+#     keyboard_switcher_worker = threading.Thread(target=keyboard_switcher)
+#     keyboard_switcher_worker.start()
+# except:
+#     print (f"{datetime.datetime.now().time()}: Error: unable to start keyboard_switcher thread. Exit.")
+#     quit()
+# keyboard_switcher()
 
 
 while True:
+    # key_input = input("type SHOW or EDIT for their modes")
+    # if key_input.startswith("EDIT"):
+    #     print("keyboard swichted mode to EDIT")
+    #     play_mode = 1 
+    # elif key_input.startswith("SHOW"):
+    #     print("keyboard swichted mode to SHOW")
+    #     play_mode = 2
     if play_mode == 2 and not play_mode_active: 
         play_mode_active = True
         edit_stop = True
