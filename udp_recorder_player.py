@@ -222,7 +222,6 @@ def network_udp():
                 show_mode = "play_mode " + str(play_mode)
                 sock.sendto((bytes(show_mode, "utf-8")), (addr[0], UDP_OUT_PORT))
             if data.startswith("SHOW"):     
-                print(f, "data: {data}")                       
                 try:
                     file_settings = open(path_settings, 'w')
                     file_settings.write(data)    
@@ -239,7 +238,6 @@ def network_udp():
                 play_mode = 2
                 print("play_mode udp", play_mode)
             if data.startswith("EDIT"):
-                print(f, "data: {data}")
                 try:
                     file_settings = open(path_settings, 'w')
                     file_settings.write(data)    
